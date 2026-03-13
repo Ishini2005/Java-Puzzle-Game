@@ -1,109 +1,132 @@
 package Code.banana.engine;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class Images {
-    private ArrayList<BufferedImage> imageArray;
+    private List<BufferedImage> images;
     private Random random;
 
-    public Images() throws IOException {
-        imageArray = new ArrayList<>();
+    public Images() {
+        images = new ArrayList<>();
         random = new Random();
-
-        // Try to load images from resources
-        loadImagesFromResources();
-
-        // If no images loaded, create fallback images
-        if (imageArray.isEmpty()) {
-            createFallbackImages();
-        }
+        loadImagesFromUrls();  // <-- CALL THIS METHOD HERE
     }
 
-    private void loadImagesFromResources() {
-        try {
-            // Try to load from classpath
-            java.net.URL resource = getClass().getResource("/images/");
-            if (resource != null) {
-                File imagesDir = new File(resource.toURI());
-                File[] files = imagesDir.listFiles((dir, name) ->
-                        name.toLowerCase().endsWith(".png") ||
-                                name.toLowerCase().endsWith(".jpg") ||
-                                name.toLowerCase().endsWith(".jpeg"));
+    /**
+     * NEW METHOD: Load images from internet URLs
+     */
+    private void loadImagesFromUrls() {
+        String[] imageUrls = {
+                "https://cdn-icons-png.flaticon.com/512/415/415682.png",  // Apple
+                "https://cdn-icons-png.flaticon.com/512/415/415731.png",  // Banana
+                "https://cdn-icons-png.flaticon.com/512/415/415733.png",  // Cherry
+                "https://cdn-icons-png.flaticon.com/512/415/415710.png",  // Grapes
+                "https://cdn-icons-png.flaticon.com/512/415/415689.png",  // Orange
+                "https://cdn-icons-png.flaticon.com/512/415/415692.png",  // Pear
+                "https://cdn-icons-png.flaticon.com/512/415/415698.png",  // Pineapple
+                "https://cdn-icons-png.flaticon.com/512/415/415704.png"   // Strawberry
+        };
 
-                if (files != null) {
-                    for (File file : files) {
-                        BufferedImage img = ImageIO.read(file);
-                        if (img != null) {
-                            imageArray.add(img);
-                        }
-                    }
+        System.out.println("Loading images from URLs...");
+
+        for (String url : imageUrls) {
+            try {
+                URL imageUrl = new URL(url);
+                BufferedImage img = ImageIO.read(imageUrl);
+                if (img != null) {
+                    BufferedImage resized = resizeImage(img, 100, 100);
+                    images.add(resized);
+                    System.out.println("✅ Loaded: " + url.substring(url.lastIndexOf("/") + 1));
                 }
+            } catch (Exception e) {
+                System.err.println("❌ Error loading from URL: " + url);
+                System.err.println("   Error: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.out.println("Could not load images from resources: " + e.getMessage());
+        }
+
+        // If URLs failed, create default colored images
+        if (images.isEmpty()) {
+            System.out.println("No images loaded from URLs, creating default images");
+            createDefaultImages();
+        } else {
+            System.out.println("✅ Successfully loaded " + images.size() + " images");
         }
     }
 
-    private void createFallbackImages() {
-        // Create 10 different colored images with patterns
-        for (int i = 0; i < 10; i++) {
-            imageArray.add(createPatternImage(i));
-        }
+    /**
+     * Helper method to resize images
+     */
+    private BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = resizedImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        g2d.dispose();
+        return resizedImage;
     }
 
-    private BufferedImage createPatternImage(int seed) {
-        BufferedImage img = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
-        java.awt.Graphics2D g2d = img.createGraphics();
+    /**
+     * Fallback method to create colored images if URLs fail
+     */
+    private void createDefaultImages() {
+        int[][] colors = {
+                {0xFF5733, 0x33FF57, 0x3357FF, 0xFF33F5},
+                {0xFFD733, 0x33FFF5, 0xFF8333, 0x8E44AD}
+        };
 
-        // Create gradient background
-        java.awt.Color color1 = new java.awt.Color(
-                (seed * 50) % 255,
-                (seed * 80) % 255,
-                (seed * 110) % 255
-        );
-        java.awt.Color color2 = new java.awt.Color(
-                (seed * 70) % 255,
-                (seed * 40) % 255,
-                (seed * 130) % 255
-        );
+        for (int[] colorRow : colors) {
+            for (int color : colorRow) {
+                images.add(createColoredImage(100, 100, color));
+            }
+        }
+        System.out.println("Created " + images.size() + " default colored images");
+    }
 
-        java.awt.GradientPaint gradient = new java.awt.GradientPaint(
-                0, 0, color1, 100, 100, color2
-        );
-        g2d.setPaint(gradient);
-        g2d.fillRect(0, 0, 100, 100);
+    private BufferedImage createColoredImage(int width, int height, int rgb) {
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = img.createGraphics();
 
-        // Draw pattern
-        g2d.setColor(java.awt.Color.WHITE);
-        g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 30));
-        g2d.drawString(String.valueOf(seed + 1), 35, 60);
+        g2d.setColor(new Color(rgb));
+        g2d.fillRect(0, 0, width, height);
+        g2d.setColor(Color.BLACK);
+        g2d.drawRect(0, 0, width-1, height-1);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(new Font("Arial", Font.BOLD, 20));
+        String text = String.valueOf(images.size() + 1);
+        FontMetrics fm = g2d.getFontMetrics();
+        int x = (width - fm.stringWidth(text)) / 2;
+        int y = (height - fm.getHeight()) / 2 + fm.getAscent();
+        g2d.drawString(text, x, y);
 
         g2d.dispose();
         return img;
     }
 
     public BufferedImage getRandomImage() {
-        if (!imageArray.isEmpty()) {
-            return imageArray.get(random.nextInt(imageArray.size()));
-        }
-        return null;
-    }
-
-    public BufferedImage getImageByHashCode(int hashCode) {
-        for (BufferedImage img : imageArray) {
-            if (img.hashCode() == hashCode) {
-                return img;
-            }
-        }
-        return null;
+        if (images.isEmpty()) return null;
+        return images.get(random.nextInt(images.size()));
     }
 
     public int getImageCount() {
-        return imageArray.size();
+        return images.size();
+    }
+
+    /**
+     * Get image by ID (for matching game)
+     */
+    public BufferedImage getImageById(int id) {
+        if (images.isEmpty() || id < 0 || id >= images.size()) {
+            return null;
+        }
+        return images.get(id);
     }
 }

@@ -2,35 +2,50 @@ package Code.banana.engine;
 
 public class Session {
     private static String loggedInUser;
-    private static boolean isFirstLogin = true; // Flag to track if it's the user's first login
+    private static boolean isGuest = false;
+    private static String sessionId;
+    private static boolean isFirstLogin = true;
 
-    // Method to get the logged-in user
     public static String getLoggedInUser() {
         return loggedInUser;
     }
 
-    // Method to set the logged-in user
     public static void setLoggedInUser(String username) {
         loggedInUser = username;
+        isFirstLogin = true;
     }
 
-    // Method to check if a user is logged in
+    public static boolean isGuest() {
+        return isGuest;
+    }
+
+    public static void setGuestMode(boolean guest) {
+        isGuest = guest;
+    }
+
+    public static String getSessionId() {
+        return sessionId;
+    }
+
+    public static void setSessionId(String id) {
+        sessionId = id;
+    }
+
     public static boolean isUserLoggedIn() {
         return loggedInUser != null && !loggedInUser.isEmpty();
     }
 
-    // Method to log out the user
     public static void logout() {
         loggedInUser = null;
-        isFirstLogin = true; // Reset for next login session
+        isGuest = false;
+        sessionId = null;
+        isFirstLogin = true;
     }
 
-    // Method to check if it's the user's first login
     public static boolean isFirstLogin() {
         return isFirstLogin;
     }
 
-    // Set first login flag to false
     public static void setFirstLoginFalse() {
         isFirstLogin = false;
     }

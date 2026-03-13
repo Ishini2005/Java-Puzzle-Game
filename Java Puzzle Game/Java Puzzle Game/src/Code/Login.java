@@ -1,15 +1,16 @@
 package Code;
 
-import javax.swing.*;
 import Code.database.DataBaseManager;
 import Code.banana.engine.Session;
 import Code.banana.engine.UserFeedback;
+import Code.banana.engine.UIStyles;  // Added UIStyles import
+import javax.swing.*;
 import java.awt.*;
+import java.sql.SQLException;
 
 public class Login extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private JButton loginButton, registerButton;
     private DataBaseManager dbManager;
 
     public Login(DataBaseManager dbManager) {
@@ -18,114 +19,102 @@ public class Login extends JFrame {
     }
 
     private void initializeUI() {
-        setTitle("Puzzle Game - Login");
+        setTitle("Login - Puzzle Game");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-        setResizable(false);
+        getContentPane().setBackground(new Color(255, 255, 204));
 
-        // Main panel with gradient background
-        JPanel mainPanel = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2d = (Graphics2D) g;
-                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                int w = getWidth(), h = getHeight();
-                GradientPaint gp = new GradientPaint(0, 0, new Color(255, 255, 200),
-                        0, h, new Color(200, 200, 150));
-                g2d.setPaint(gp);
-                g2d.fillRect(0, 0, w, h);
-            }
-        };
-        mainPanel.setLayout(new GridBagLayout());
+        // Main panel
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setOpaque(false);
+        GridBagConstraints gbc = new GridBagConstraints();
 
-        // Create form panel
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        // Title - Using UIStyles
+        JLabel titleLabel = UIStyles.createTitleLabel("🧩 PUZZLE GAME 🧩");
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.insets = new Insets(20, 20, 30, 20);
+        mainPanel.add(titleLabel, gbc);
+
+        // Form panel
+        JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setOpaque(false);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(30, 50, 30, 50));
+        GridBagConstraints fgbc = new GridBagConstraints();
+        fgbc.insets = new Insets(5, 5, 5, 5);
 
-        // Title
-        JLabel titleLabel = new JLabel("🍌 PUZZLE GAME");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setForeground(new Color(100, 50, 0));
-        formPanel.add(titleLabel);
-        formPanel.add(Box.createVerticalStrut(30));
+        // Username label - Updated font
+        fgbc.gridx = 0;
+        fgbc.gridy = 0;
+        fgbc.anchor = GridBagConstraints.EAST;
+        JLabel usernameLabel = new JLabel("Username:");
+        usernameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        formPanel.add(usernameLabel, fgbc);
 
-        // Username field
-        JPanel usernamePanel = createInputPanel("Username:", usernameField = new JTextField(15));
-        formPanel.add(usernamePanel);
-        formPanel.add(Box.createVerticalStrut(10));
-
-        // Password field
-        JPanel passwordPanel = createInputPanel("Password:", passwordField = new JPasswordField(15));
-        formPanel.add(passwordPanel);
-        formPanel.add(Box.createVerticalStrut(20));
-
-        // Buttons panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setOpaque(false);
-
-        loginButton = createButton("Login", new Color(70, 130, 180));
-        registerButton = createButton("Register", new Color(60, 179, 113));
-
-        loginButton.addActionListener(e -> handleLogin());
-        registerButton.addActionListener(e -> handleRegistration());
-
-        buttonPanel.add(loginButton);
-        buttonPanel.add(registerButton);
-        formPanel.add(buttonPanel);
-
-        mainPanel.add(formPanel);
-        add(mainPanel);
-
-        setSize(400, 450);
-        setLocationRelativeTo(null);
-    }
-
-    private JPanel createInputPanel(String labelText, JTextField field) {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setOpaque(false);
-
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Arial", Font.PLAIN, 14));
-        label.setForeground(new Color(100, 50, 0));
-
-        field.setFont(new Font("Arial", Font.PLAIN, 14));
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 180, 100)),
+        fgbc.gridx = 1;
+        fgbc.anchor = GridBagConstraints.WEST;
+        usernameField = new JTextField(15);
+        usernameField.setFont(new Font("Arial", Font.PLAIN, 14));
+        usernameField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.BLACK, 1),
                 BorderFactory.createEmptyBorder(5, 5, 5, 5)
         ));
+        formPanel.add(usernameField, fgbc);
 
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(field, BorderLayout.CENTER);
+        // Password label - Updated font
+        fgbc.gridx = 0;
+        fgbc.gridy = 1;
+        fgbc.anchor = GridBagConstraints.EAST;
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        formPanel.add(passwordLabel, fgbc);
 
-        return panel;
-    }
+        fgbc.gridx = 1;
+        fgbc.anchor = GridBagConstraints.WEST;
+        passwordField = new JPasswordField(15);
+        passwordField.setFont(new Font("Arial", Font.PLAIN, 14));
+        passwordField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.BLACK, 1),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+        formPanel.add(passwordField, fgbc);
 
-    private JButton createButton(String text, Color bgColor) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 14));
-        button.setBackground(bgColor);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        gbc.gridy = 1;
+        mainPanel.add(formPanel, gbc);
 
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor.brighter());
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(bgColor);
-            }
+        // Button panel - Using UIStyles for all buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        buttonPanel.setOpaque(false);
+
+        // Login button - Using UIStyles
+        JButton loginButton = UIStyles.createLoginButton("LOGIN", UIStyles.BUTTON_BLUE);
+        loginButton.addActionListener(e -> handleLogin());
+        buttonPanel.add(loginButton);
+
+        // Register button - Using UIStyles
+        JButton registerButton = UIStyles.createLoginButton("REGISTER", UIStyles.BUTTON_GREEN);
+        registerButton.addActionListener(e -> handleRegister());
+        buttonPanel.add(registerButton);
+
+        // Guest button - Using UIStyles
+        JButton guestButton = UIStyles.createLoginButton("PLAY AS GUEST", UIStyles.BUTTON_ORANGE);
+        guestButton.addActionListener(e -> {
+            new GuestLogin(dbManager);
+            dispose();
         });
+        buttonPanel.add(guestButton);
 
-        return button;
+        gbc.gridy = 2;
+        mainPanel.add(buttonPanel, gbc);
+
+        add(mainPanel, BorderLayout.CENTER);
+
+        setSize(650, 550);
+        setLocationRelativeTo(null);
+        setVisible(true);
     }
 
-    // FIXED: Removed SQLException catch
+    // Note: createStyledButton method removed - now using UIStyles
+
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
@@ -138,19 +127,19 @@ public class Login extends JFrame {
         try {
             if (dbManager.login(username, password)) {
                 Session.setLoggedInUser(username);
-                UserFeedback.showInfo("Login successful! Welcome " + username);
-                new Levels(dbManager, username).setVisible(true);
+                Session.setGuestMode(false);
+                UserFeedback.showInfo("Welcome back, " + username + "!");
+                new Levels(dbManager, username, false);
                 dispose();
             } else {
                 UserFeedback.showError("Invalid username or password");
             }
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             UserFeedback.showError("Database error: " + ex.getMessage());
         }
     }
 
-    // FIXED: Removed SQLException catch
-    private void handleRegistration() {
+    private void handleRegister() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
 
@@ -159,29 +148,28 @@ public class Login extends JFrame {
             return;
         }
 
-        if (password.length() < 4) {
-            UserFeedback.showWarning("Password must be at least 4 characters long");
+        if (password.length() < 8) {
+            UserFeedback.showWarning("Password must be at least 8 characters long");
             return;
         }
 
         try {
-            if (dbManager.register(username, password)) {
-                UserFeedback.showInfo("Registration successful! You can now login.");
-                // Clear fields after successful registration
+            String email = JOptionPane.showInputDialog(this, "Enter your email:",
+                    "Registration", JOptionPane.QUESTION_MESSAGE);
+
+            if (email == null || email.trim().isEmpty()) {
+                UserFeedback.showWarning("Email is required for registration");
+                return;
+            }
+
+            if (dbManager.register(username, password, email)) {
+                UserFeedback.showInfo("Registration successful! Please login.");
                 usernameField.setText("");
                 passwordField.setText("");
-                usernameField.requestFocus();
             } else {
-                // Check if username already exists
-                if (dbManager.userExists(username)) {
-                    UserFeedback.showError("Username '" + username + "' already exists! Please choose another username.");
-                    usernameField.selectAll();
-                    usernameField.requestFocus();
-                } else {
-                    UserFeedback.showError("Registration failed. Please try again.");
-                }
+                UserFeedback.showError("Registration failed. Username might already exist.");
             }
-        } catch (Exception ex) {
+        } catch (SQLException ex) {
             UserFeedback.showError("Database error: " + ex.getMessage());
         }
     }

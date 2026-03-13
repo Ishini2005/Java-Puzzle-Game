@@ -1,180 +1,254 @@
 package Code;
 
-import javax.swing.*;
 import Code.banana.engine.UserScore;
 import Code.database.DataBaseManager;
+import Code.banana.engine.Session;
+import Code.banana.engine.UserFeedback;
+import Code.banana.engine.UIStyles;
+import javax.swing.*;
+import javax.swing.table.*;
 import java.awt.*;
 import java.util.List;
 
 public class Leaderboard extends JFrame {
     private DataBaseManager dbManager;
-    private JPanel leaderboardPanel;
-    private String currentUser;
-    private boolean showTimeLeaderboard = true;
+    private String username;
+    private boolean isGuest;
+    private JTable leaderboardTable;
+    private JScrollPane scrollPane;
 
-    public Leaderboard(DataBaseManager dbManager, String currentUser) {
+    public Leaderboard(DataBaseManager dbManager, String username, boolean isGuest) {
         this.dbManager = dbManager;
-        this.currentUser = currentUser;
+        this.username = username;
+        this.isGuest = isGuest;
 
-        setTitle("🏆 Leaderboard");
-        setSize(600, 500);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        System.out.println("=== LEADERBOARD OPENED ===");
+        System.out.println("Username: " + username);
+        System.out.println("isGuest: " + isGuest);
+        System.out.println("dbManager: " + (dbManager != null ? "OK" : "NULL"));
 
         initializeUI();
         loadLeaderboard();
+        setVisible(true);
     }
 
     private void initializeUI() {
+        setTitle("Leaderboard - Top Players");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
-        getContentPane().setBackground(new Color(240, 248, 255));
+        getContentPane().setBackground(UIStyles.PANEL_BACKGROUND);
 
-        // Header with toggle buttons
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(240, 248, 255));
+        // Title
+        JLabel titleLabel = UIStyles.createTitleLabel("🏆 LEADERBOARD 🏆");
+        titleLabel.setForeground(UIStyles.GOLD);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        add(titleLabel, BorderLayout.NORTH);
 
-        JLabel headerLabel = new JLabel("🏆 TOP PLAYERS 🏆", SwingConstants.CENTER);
-        headerLabel.setFont(new Font("Arial", Font.BOLD, 26));
-        headerLabel.setForeground(new Color(72, 61, 139));
-        headerLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 5, 10));
-        headerPanel.add(headerLabel, BorderLayout.NORTH);
+        // Create table
+        leaderboardTable = new JTable();
+        leaderboardTable.setFont(new Font("Arial", Font.BOLD, 14));
+        leaderboardTable.setRowHeight(35);
+        leaderboardTable.setGridColor(UIStyles.BLACK);
+        leaderboardTable.setShowGrid(true);
+        leaderboardTable.setSelectionBackground(new Color(255, 215, 0, 50));
 
-        // Toggle buttons
-        JPanel togglePanel = new JPanel(new FlowLayout());
-        togglePanel.setBackground(new Color(240, 248, 255));
+        scrollPane = new JScrollPane(leaderboardTable);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
+        scrollPane.getViewport().setBackground(UIStyles.WHITE);
 
-        JButton timeButton = new JButton("⏱️ Fastest Times");
-        timeButton.setFont(new Font("Arial", Font.BOLD, 14));
-        timeButton.setBackground(showTimeLeaderboard ? new Color(255, 215, 0) : Color.LIGHT_GRAY);
+        add(scrollPane, BorderLayout.CENTER);
 
-        JButton scoreButton = new JButton("⭐ Highest Scores");
-        scoreButton.setFont(new Font("Arial", Font.BOLD, 14));
-        scoreButton.setBackground(showTimeLeaderboard ? Color.LIGHT_GRAY : new Color(255, 215, 0));
+        // UPDATED Bottom panel with styled buttons
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-        timeButton.addActionListener(e -> {
-            showTimeLeaderboard = true;
-            timeButton.setBackground(new Color(255, 215, 0));
-            scoreButton.setBackground(Color.LIGHT_GRAY);
-            loadLeaderboard();
-        });
-
-        scoreButton.addActionListener(e -> {
-            showTimeLeaderboard = false;
-            scoreButton.setBackground(new Color(255, 215, 0));
-            timeButton.setBackground(Color.LIGHT_GRAY);
-            loadLeaderboard();
-        });
-
-        togglePanel.add(timeButton);
-        togglePanel.add(scoreButton);
-        headerPanel.add(togglePanel, BorderLayout.CENTER);
-
-        add(headerPanel, BorderLayout.NORTH);
-
-        // Leaderboard panel
-        leaderboardPanel = new JPanel();
-        leaderboardPanel.setLayout(new BoxLayout(leaderboardPanel, BoxLayout.Y_AXIS));
-        leaderboardPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        add(new JScrollPane(leaderboardPanel), BorderLayout.CENTER);
-
-        // Footer with buttons
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-
-        JButton refreshButton = new JButton("🔄 Refresh");
-        refreshButton.setFont(new Font("Arial", Font.BOLD, 14));
-        refreshButton.setBackground(new Color(100, 149, 237));
-        refreshButton.setForeground(Color.WHITE);
-        refreshButton.addActionListener(e -> loadLeaderboard());
-
-        JButton backButton = new JButton("🔙 Back to Levels");
-        backButton.setFont(new Font("Arial", Font.BOLD, 14));
-        backButton.setBackground(new Color(255, 223, 0));
-        backButton.addActionListener(e -> {
+        JButton playAgainButton = UIStyles.createStyledButton("🎮 PLAY AGAIN", UIStyles.BUTTON_BLUE, 200, 50);
+        playAgainButton.addActionListener(e -> {
+            System.out.println("Play Again clicked");
+            new Levels(dbManager, username, isGuest).setVisible(true);
             dispose();
-            new Levels(dbManager, currentUser).setVisible(true);
         });
 
-        footerPanel.add(refreshButton);
-        footerPanel.add(backButton);
-        add(footerPanel, BorderLayout.SOUTH);
+        JButton logoutButton = UIStyles.createStyledButton("🚪 LOGOUT", UIStyles.RED, 200, 50);
+        logoutButton.addActionListener(e -> {
+            System.out.println("Logout clicked");
+            Session.logout();
+            new Login(dbManager).setVisible(true);
+            dispose();
+        });
+
+        bottomPanel.add(playAgainButton);
+        bottomPanel.add(logoutButton);
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        setSize(800, 600);
+        setLocationRelativeTo(null);
     }
+
+    // Note: createStyledButton method removed - now using UIStyles
 
     private void loadLeaderboard() {
-        leaderboardPanel.removeAll();
+        try {
+            List<UserScore> scores = dbManager.getTopScores();
+            System.out.println("Retrieved " + scores.size() + " scores");
 
-        // Header row
-        JPanel headerRow = new JPanel(new GridLayout(1, 3, 10, 10));
-        headerRow.add(createLabel("Rank", true));
-        headerRow.add(createLabel("Player", true));
+            if (scores == null || scores.isEmpty()) {
+                showEmptyLeaderboard();
+                return;
+            }
 
-        if (showTimeLeaderboard) {
-            headerRow.add(createLabel("Time (s)", true));
-        } else {
-            headerRow.add(createLabel("Score", true));
-        }
+            // Create table data
+            String[] columns = {"Rank", "Player", "Level", "Score"};
+            Object[][] data = new Object[scores.size()][4];
 
-        headerRow.setBackground(new Color(135, 206, 250));
-        leaderboardPanel.add(headerRow);
-
-        // Get scores
-        List<UserScore> scores;
-        if (showTimeLeaderboard) {
-            scores = dbManager.getTopScoresByTime();
-        } else {
-            scores = dbManager.getTopScores();
-        }
-
-        if (scores.isEmpty()) {
-            JPanel emptyRow = new JPanel(new GridLayout(1, 1));
-            JLabel emptyLabel = createLabel("No scores yet. Play a game!", false);
-            emptyLabel.setForeground(Color.GRAY);
-            emptyRow.add(emptyLabel);
-            leaderboardPanel.add(emptyRow);
-        } else {
             int rank = 1;
-            for (UserScore score : scores) {
-                JPanel row = new JPanel(new GridLayout(1, 3, 10, 10));
+            for (int i = 0; i < scores.size(); i++) {
+                UserScore score = scores.get(i);
 
-                // Highlight current user
-                if (score.getUsername().equals(currentUser)) {
-                    row.setBackground(new Color(255, 223, 186));
-                    row.setBorder(BorderFactory.createLineBorder(Color.ORANGE, 2));
-                } else {
-                    row.setBackground(rank % 2 == 0 ? new Color(224, 255, 255) : new Color(173, 216, 230));
-                }
-
-                // Add medal emojis for top 3
+                // Add medal emoji for top 3
                 String rankText;
-                if (rank == 1) rankText = "🥇 1";
-                else if (rank == 2) rankText = "🥈 2";
-                else if (rank == 3) rankText = "🥉 3";
-                else rankText = String.valueOf(rank);
-
-                row.add(createLabel(rankText, false));
-                row.add(createLabel(score.getUsername(), false));
-
-                if (showTimeLeaderboard) {
-                    row.add(createLabel(String.valueOf(score.getTimeTaken()), false));
+                if (rank == 1) {
+                    rankText = "🥇 #1";
+                } else if (rank == 2) {
+                    rankText = "🥈 #2";
+                } else if (rank == 3) {
+                    rankText = "🥉 #3";
                 } else {
-                    row.add(createLabel(String.valueOf(score.getScore()), false));
+                    rankText = "#" + rank;
                 }
 
-                leaderboardPanel.add(row);
+                data[i][0] = rankText;
+                data[i][1] = score.getPlayerName();
+                data[i][2] = score.getLevel();
+                data[i][3] = score.getTotalScore() + " pts";
                 rank++;
             }
-        }
 
-        leaderboardPanel.revalidate();
-        leaderboardPanel.repaint();
+            // Create table model
+            DefaultTableModel model = new DefaultTableModel(data, columns) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            leaderboardTable.setModel(model);
+
+            // Style the table header
+            JTableHeader header = leaderboardTable.getTableHeader();
+            header.setFont(new Font("Arial", Font.BOLD, 16));
+            header.setBackground(UIStyles.BUTTON_BLUE);
+            header.setForeground(UIStyles.WHITE);
+            header.setBorder(UIStyles.LINE_BORDER);
+
+            // Center align all columns
+            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+            centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+            centerRenderer.setFont(new Font("Arial", Font.BOLD, 14));
+
+            for (int i = 0; i < leaderboardTable.getColumnCount(); i++) {
+                leaderboardTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+            }
+
+            // Set column widths
+            leaderboardTable.getColumnModel().getColumn(0).setPreferredWidth(60);
+            leaderboardTable.getColumnModel().getColumn(1).setPreferredWidth(200);
+            leaderboardTable.getColumnModel().getColumn(2).setPreferredWidth(150);
+            leaderboardTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+
+            // Apply row highlighting
+            applyRowHighlighting(scores);
+
+        } catch (Exception e) {
+            System.err.println("ERROR loading leaderboard: " + e.getMessage());
+            e.printStackTrace();
+            showErrorPanel("Error loading leaderboard: " + e.getMessage());
+        }
     }
 
-    private JLabel createLabel(String text, boolean isHeader) {
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        if (isHeader) {
-            label.setFont(new Font("Arial", Font.BOLD, 18));
-        } else {
-            label.setFont(new Font("Arial", Font.PLAIN, 16));
+    private void applyRowHighlighting(List<UserScore> scores) {
+        // Custom renderer to highlight current user's row
+        DefaultTableCellRenderer highlightRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+
+                Component c = super.getTableCellRendererComponent(table, value,
+                        isSelected, hasFocus, row, column);
+
+                String playerName = (String) table.getValueAt(row, 1);
+                String currentPlayer = isGuest ? username + " (Guest)" : username;
+
+                if (playerName != null && playerName.equals(currentPlayer)) {
+                    c.setBackground(new Color(255, 215, 0, 50)); // Gold highlight
+                    c.setFont(new Font("Arial", Font.BOLD, 14));
+                } else {
+                    c.setBackground(row % 2 == 0 ? UIStyles.WHITE : new Color(240, 248, 255));
+                    c.setFont(new Font("Arial", Font.PLAIN, 14));
+                }
+
+                setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                return c;
+            }
+        };
+
+        // Apply the renderer to all columns
+        for (int i = 0; i < leaderboardTable.getColumnCount(); i++) {
+            leaderboardTable.getColumnModel().getColumn(i).setCellRenderer(highlightRenderer);
         }
+    }
+
+    private void showEmptyLeaderboard() {
+        String[] columns = {"Rank", "Player", "Level", "Score"};
+        Object[][] data = {{"", "No scores yet!", "", ""}};
+
+        DefaultTableModel model = new DefaultTableModel(data, columns) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        leaderboardTable.setModel(model);
+
+        // Center the message
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
+        centerRenderer.setFont(new Font("Arial", Font.BOLD, 16));
+        leaderboardTable.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+    }
+
+    private void showErrorPanel(String message) {
+        String[] columns = {"Error"};
+        Object[][] data = {{"❌ " + message}};
+
+        DefaultTableModel model = new DefaultTableModel(data, columns) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        leaderboardTable.setModel(model);
+
+        DefaultTableCellRenderer errorRenderer = new DefaultTableCellRenderer();
+        errorRenderer.setHorizontalAlignment(JLabel.CENTER);
+        errorRenderer.setForeground(UIStyles.RED);
+        errorRenderer.setFont(new Font("Arial", Font.BOLD, 14));
+        leaderboardTable.getColumnModel().getColumn(0).setCellRenderer(errorRenderer);
+    }
+
+    private JLabel createHeaderLabel(String text) {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.BOLD, 16));
+        label.setForeground(Color.WHITE);
+        return label;
+    }
+
+    private JLabel createRowLabel(String text) {
+        JLabel label = new JLabel(text, SwingConstants.CENTER);
+        label.setFont(new Font("Arial", Font.PLAIN, 14));
         return label;
     }
 }
